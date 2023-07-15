@@ -28,8 +28,8 @@ This project uses MobileNetV2 with 2 SSD heads for person detection, OmniScaleNe
    ```python
    python social_distancing_openvino.py
    ```
-   <br> Output of this file will be stored in demo_videos folder
-   for unoptimized model:
+   Output of this file will be stored in demo_videos folder
+   <br>For unoptimized model:
    ```python
    python social_distancing_yolov3-tiny.py
    ```
