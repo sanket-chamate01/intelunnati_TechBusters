@@ -27,9 +27,8 @@ def convertBack(x, y, w, h):
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
 
-
+# Load Model
 ie_core = Core()
-
 class Model:
     def __init__(self, model_path, batchsize=1, device="AUTO"):
         self.model = ie_core.read_model(model=model_path)
@@ -54,7 +53,7 @@ reidentification_model_path = '../models/person-reidentification-retail-0287.xml
 detector = Model(detection_model_path)
 extractor = Model(reidentification_model_path, -1)
 
-
+# Single image preprocessing
 def preprocess(frame, height, width):
     resized_image = cv2.resize(frame, (width, height))
     resized_image = resized_image.transpose((2, 0, 1))
@@ -92,7 +91,7 @@ def process_results(h, w, results, thresh=0.5):
         labels = np.array([])
     return np.array(boxes), np.array(scores), np.array(labels)
 
-
+# Function to draw bounding boxes in original image
 def draw_boxes(img, bbox, identities=None):
     centroid_dict = dict() 						
     objectId = 0	
@@ -105,7 +104,8 @@ def draw_boxes(img, bbox, identities=None):
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
         centroid_dict[objectId] = (int((x1+x2)/2), int((y1+y2)/2), x1, y1, x2, y2) # Create dictionary of tuple with 'objectId' as the index center points and bbox
         objectId += 1 #Increment the index for each detection
-        
+
+        # prints a rectangle with label on screen
         cv2.rectangle(
             img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
         cv2.putText(
@@ -118,8 +118,8 @@ def draw_boxes(img, bbox, identities=None):
             2
         )
         
-    red_zone_list = [] 
-    red_line_list = []
+    red_zone_list = [] # consist the detected people's id number that violate social distancing 
+    red_line_list = [] # consist the detected people's centroid value that violate social distancing 
     for (id1, p1), (id2, p2) in combinations(centroid_dict.items(), 2):
             dx, dy = p1[0] - p2[0], p1[1] - p2[1]   # Check the difference between centroid x: 0, y :1
             distance = is_close(dx, dy) 			
@@ -140,15 +140,18 @@ def draw_boxes(img, bbox, identities=None):
     text = "Violations: %s" % str(len(red_zone_list))   # Count number of Violations
     location = (10,430)												
     cv2.putText(img, text, location, cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0), 2, cv2.LINE_AA)
+
+    # Declare region in the frame to be High Risk Zone if people violating social distance
+    # is more than or equal to 60% of total people in the frame at that time and Moderate Risk
+    # Zone if the number is more than or equal to 40%
     if len(red_zone_list) >= 0.6*len(centroid_dict):
         cv2.putText(img, "High Risk Zone!!!", (330,430), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
     elif len(red_zone_list) >= 0.4*len(centroid_dict):
         cv2.putText(img, "Moderate Risk Zone!!!", (330,430), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)  
     return img
 
-
+# Calculates cosine distance of 2 vectors
 def cosin_metric(x1, x2):
-    
     return np.dot(x1, x2) / (np.linalg.norm(x1) * np.linalg.norm(x2))
 
 # Main Processing function 
@@ -160,7 +163,7 @@ def run_person_tracking(source=0, flip=False, use_popup=True, skip_first_frames=
     
     player = None
     try:
-        # Create a video player to play with target fps.
+        # Create a video player to play with target fps. It helps in smooth playback and testing
         player = utils.VideoPlayer(
             source=source, size=(700, 450), flip=flip, fps=24, skip_first_frames=skip_first_frames
         )
@@ -180,7 +183,6 @@ def run_person_tracking(source=0, flip=False, use_popup=True, skip_first_frames=
                 print("Source ended")
                 break
             # If the frame is larger than full HD, reduce size to improve the performance.
-
             # Resize the image and change dims to fit neural network input.
             h, w = frame.shape[:2]
             input_image = preprocess(frame, detector.height, detector.width)
@@ -248,6 +250,7 @@ def run_person_tracking(source=0, flip=False, use_popup=True, skip_first_frames=
                 identities = outputs[:, -1]
                 frame = draw_boxes(frame, bbox_xyxy, identities)
 
+            # Show Inference time on screen
             cv2.putText(
                 img=frame,
                 text=f"Inference time: {processing_time:.1f}ms",
@@ -259,6 +262,7 @@ def run_person_tracking(source=0, flip=False, use_popup=True, skip_first_frames=
                 lineType=cv2.LINE_AA,
             )
 
+            # Show FPS(Frames Per Second) on screen
             cv2.putText(
                 img=frame,
                 text=f"FPS: {fps:.1f}",
@@ -287,9 +291,8 @@ def run_person_tracking(source=0, flip=False, use_popup=True, skip_first_frames=
                 display.clear_output(wait=True)
                 display.display(i)
 
-            out.write(frame)
+            out.write(frame) # writes frames to video file 
 
-    # ctrl-c
     except KeyboardInterrupt:
         print("Interrupted")
     # any different error
