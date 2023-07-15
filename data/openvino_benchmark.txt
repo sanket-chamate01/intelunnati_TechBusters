@@ -1,3 +1,4 @@
+//////////////////////////////////// For person-detection0202(MobileNet model) ///////////////////////////////////////
 [Step 1/11] Parsing and validating input arguments
 [ INFO ] Parsing input parameters
 [Step 2/11] Loading OpenVINO Runtime
@@ -60,6 +61,9 @@
 [ INFO ]    Min:           31.90 ms
 [ INFO ]    Max:           84.54 ms
 [ INFO ] Throughput:   74.03 FPS
+
+//////////////////////////////////// For person-reidentification-retail-0287(OSnet model) ///////////////////////////////////////
+
 [Step 1/11] Parsing and validating input arguments
 [ INFO ] Parsing input parameters
 [Step 2/11] Loading OpenVINO Runtime
