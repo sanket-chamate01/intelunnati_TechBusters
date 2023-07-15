@@ -24,7 +24,7 @@ This project uses MobileNetV2 with 2 SSD heads for person detection, OmniScaleNe
    You can run the file in devcloud to skip this step
 
 4. Run the file <br>
-    for optimized model:
+    For optimized model:
    ```python
    python social_distancing_openvino.py
    ```
