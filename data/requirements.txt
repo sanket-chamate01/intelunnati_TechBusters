@@ -6,13 +6,8 @@ PyYAML
 requests
 scipy
 protobuf
-collections
 pandas
-seaborn
-math
-time
 pathlib
-sys
 ipython
-itertools
 openvino-dev
+collections
