@@ -2,6 +2,7 @@ import time
 import math
 import cv2
 import numpy as np
+import collections
 
 confid = 0.5
 thresh = 0.5
@@ -62,13 +63,14 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 ln = list(net.getLayerNames())
 print(len(ln))
 ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
-FR=0
 vs = cv2.VideoCapture(vid_path)
 
 (W, H) = (None, None)
 
 fl = 0
 q = 0
+
+processing_times = collections.deque()
 
 while True:
     (grabbed, frame) = vs.read()
@@ -81,11 +83,9 @@ while True:
         FW=W
         if(W<1075):
             FW = 1075
-        FR = np.zeros((H+210,FW,3), np.uint8)
 
         col = (255,255,255)
         FH = H + 210
-    FR[:] = col
 
     blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416),
                                  swapRB=True, crop=False)
@@ -93,7 +93,13 @@ while True:
     start = time.time()
     layerOutputs = net.forward(ln)
     end = time.time()
+    processing_times.append(end - start)
+    if len(processing_times) > 200:
+        processing_times.popleft()
 
+    processing_time = np.mean(processing_times) * 1100
+    fps = 1000 / processing_time
+    
     boxes = []
     confidences = []
     classIDs = []
@@ -153,25 +159,45 @@ while True:
         safe_p = status.count(0)
         kk = 0
 
+        cv2.putText(
+            img=frame,
+            text=f"Inference time: {processing_time:.1f}ms",
+            org=(20, 40),
+            fontFace=cv2.FONT_HERSHEY_COMPLEX,
+            fontScale=1,
+            color=(255, 0, 0),
+            thickness=2,
+            lineType=cv2.LINE_AA,
+        )
+
+        cv2.putText(
+            img=frame,
+            text=f"FPS: {fps:.1f}",
+            org=(20, 70),
+            fontFace=cv2.FONT_HERSHEY_COMPLEX,
+            fontScale=1,
+            color=(255, 0, 0),
+            thickness=2,
+            lineType=cv2.LINE_AA,
+        )
+
         for i in idf:
             (x, y) = (boxes[i][0], boxes[i][1])
             (w, h) = (boxes[i][2], boxes[i][3])
             if status[kk] == 1:
-                cv2.putText(FR, "Violation!!!", (625, H +25),
-                        cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
+                cv2.putText(frame, "Violation!!!", (700, 90),
+                        cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 3)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
             elif status[kk] == 0:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
             else:
-                cv2.putText(FR, "Violation!!!", (625, H +25),
-                        cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
+                cv2.putText(frame, "Violation!!!", (700, 90),
+                        cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 3)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
             kk += 1
-        FR[0:H, 0:W] = frame
-        frame = FR
         cv2.imshow('Social Distancing', frame)
         cv2.waitKey(1)
 
